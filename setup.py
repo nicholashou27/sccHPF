@@ -26,7 +26,7 @@ setup(
     name='sccHPF',
     version=__version__,
     packages=find_packages(),
-    scripts=['bin/sccHPF'],
+    scripts=['/sccHPF'],
     python_requires='>=3.6',
     install_requires=requires,
     tests_require=tests_require,
