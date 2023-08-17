@@ -35,5 +35,5 @@ setup(
     author_email = 'nh2642@columbia.edu',
     description='Single-cell Consensus Hierarchical Poisson Factorization',
     license="N/A",
-    url='https://github.com/nicholashou27/sccHPF',
+    url= 'https://github.com/nicholashou27/sccHPF',
 )
