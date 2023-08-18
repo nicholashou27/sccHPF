@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 # get version from file
 __version__ = '0.0.0'
-exec(open('_version.py').read())
+exec(open('scchpf/_version.py').read())
 
 requires = ['scikit-learn',
             "numba >= 0.39, !=0.41, !=0.42, !=0.43; python_version<='3.7.3'",
