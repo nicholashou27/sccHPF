@@ -5,6 +5,8 @@ import datetime
 import uuid
 import itertools
 import sklearn
+import schpf
+import scipy.sparse as sp
 
 from scipy.spatial.distance import squareform
 from sklearn.decomposition import non_negative_factorization
@@ -282,7 +284,14 @@ class cNMF():
             Arguments to be passed to ``non_negative_factorization``
 
         """
-        (W, H, niter) = non_negative_factorization(X.values, **nmf_kwargs)
+        # (W, H, niter) = non_negative_factorization(X.values, **nmf_kwargs)
+
+        adata = anndata.AnnData(X: X.iloc[1:,1:],
+                        obs: X.iloc[:,0:1],
+                        var: X.iloc[0:1,:])
+        
+        hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
+        (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
 
         usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
         spectra = pd.DataFrame(H, columns=X.columns, index=topic_labels)
