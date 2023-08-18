@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import numpy as np
 import pandas as pd
 import os, errno
@@ -287,12 +285,12 @@ class cNMF():
             Arguments to be passed to ``non_negative_factorization``
 
         """
-        # (W, H, niter) = non_negative_factorization(X.values, **nmf_kwargs)
+        (W, H, niter) = non_negative_factorization(X.values, **nmf_kwargs)
 
-        adata = sc.AnnData(X)
+        # adata = sc.AnnData(X)
         
-        hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
-        (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
+        # hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
+        # (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
 
         usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
         spectra = pd.DataFrame(H, columns=X.columns, index=topic_labels)
