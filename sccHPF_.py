@@ -7,7 +7,7 @@ import itertools
 import sklearn
 
 from scipy.spatial.distance import squareform
-from sklearn.decomposition.nmf import non_negative_factorization
+from sklearn.decomposition import non_negative_factorization
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
