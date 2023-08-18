@@ -13,7 +13,8 @@ requires = ['scikit-learn',
             'scipy >= 1.1',
             'numpy',
             'pandas',
-            'joblib'
+            'joblib',
+            'scanpy'
             ]
 
 tests_require = ['pytest']
