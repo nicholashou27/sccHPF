@@ -7,7 +7,7 @@ import itertools
 import sklearn
 import schpf
 import scipy.sparse as sp
-import scanyp as sc
+import scanpy as sc
 
 from scipy.spatial.distance import squareform
 from sklearn.decomposition import non_negative_factorization
