@@ -289,7 +289,7 @@ class cNMF():
 
         adata = sc.AnnData(X)
         
-        hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
+        hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.01)
         (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
 
         usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
