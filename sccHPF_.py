@@ -293,7 +293,7 @@ class cNMF():
         (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
 
         usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
-        spectra = pd.DataFrame(H, columns=X.columns, index=topic_labels)
+        spectra = pd.DataFrame(np.transpose(H), columns=X.columns, index=topic_labels)
 
         #Sort by overall usage, and rename topics with 1-indexing.
         topic_order = spectra.sum(axis=1).sort_values(ascending=False).index
