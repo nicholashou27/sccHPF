@@ -468,9 +468,7 @@ class cNMF():
         )
         _, rf_usages = self._nmf(norm_counts,
                                           nmf_kwargs=refit_nmf_kwargs,
-                                          topic_labels=np.arange(1,k+1),
-                                          verbose=False
-                                )
+                                          topic_labels=np.arange(1,k+1))
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.index, columns=median_spectra.index)
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
 
@@ -518,9 +516,7 @@ class cNMF():
             regularization=None,
         )
         _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs,
-                                          topic_labels=np.arange(1,k+1),
-                                          verbose=False
-                                  )
+                                          topic_labels=np.arange(1,k+1))
         spectra_tpm = spectra_tpm.T
         spectra_tpm.sort_index(ascending=True, inplace=True)
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
