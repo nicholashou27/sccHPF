@@ -543,8 +543,11 @@ class cNMF():
 
                 cl_dist = squareform(topics_dist[cl_filter, :][:, cl_filter])
                 cl_dist[cl_dist < 0] = 0 #Rarely get floating point arithmetic issues
-                cl_link = linkage(cl_dist, 'average')
-                cl_leaves_order = leaves_list(cl_link)
+                if len(cl_dist) == 0:
+                    cl_leaves_order = [0]
+                else:
+                    cl_link = linkage(cl_dist, 'average')
+                    cl_leaves_order = leaves_list(cl_link)
 
                 spectra_order += list(np.where(cl_filter)[0][cl_leaves_order])
 
