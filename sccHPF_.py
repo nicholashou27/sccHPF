@@ -454,6 +454,7 @@ class cNMF():
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Silhouette plot
+        import matplotlib.pyplot as plt
         
         fig_sil, ax1 = plt.subplots(1, 1)
         fig_sil.set_size_inches(18, 7)
