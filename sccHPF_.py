@@ -504,7 +504,6 @@ class cNMF():
             fontsize=14,
             fontweight="bold",
         )
-        print(stability)
         plt.show()
         fig_sil.savefig(self.paths['silhouette_plot']%k, dpi=250)
 
