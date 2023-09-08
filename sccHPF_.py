@@ -466,14 +466,14 @@ class cNMF():
         for i in range(k):
             # Aggregate the silhouette scores for samples belonging to
             # cluster i, and sort them
-            ith_cluster_silhouette_values = sample_silhouette_values[cluster_labels == i]
+            ith_cluster_silhouette_values = sample_silhouette_values[kmeans_cluster_labels == i]
     
             ith_cluster_silhouette_values.sort()
     
             size_cluster_i = ith_cluster_silhouette_values.shape[0]
             y_upper = y_lower + size_cluster_i
     
-            color = cm.nipy_spectral(float(i) / n_clusters)
+            color = cm.nipy_spectral(float(i) / k)
             ax1.fill_betweenx(
                 np.arange(y_lower, y_upper),
                 0,
