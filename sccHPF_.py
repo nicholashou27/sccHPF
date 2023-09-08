@@ -185,6 +185,7 @@ class cNMF():
                 'consensus_stats': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.stats.k_%d.dt_%s.df.npz'),
 
                 'clustering_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d.dt_%s.pdf'),
+                'silhouette_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d'),
                 'gene_spectra_score': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_score.k_%d.dt_%s.df.npz'),
                 'gene_spectra_score__txt': os.path.join(self.output_dir, self.name, self.name+'.gene_spectra_score.k_%d.dt_%s.txt'),
                 'gene_spectra_tpm': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_tpm.k_%d.dt_%s.df.npz'),
@@ -503,8 +504,9 @@ class cNMF():
             fontsize=14,
             fontweight="bold",
         )
-        print(sample_silhouette_values)
-        plt.show(fig_sil)
+        print(stability)
+        plt.show()
+        fig_sil.savefig(self.paths['silhouette_plot']%k, dpi=250)
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
