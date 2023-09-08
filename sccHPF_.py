@@ -496,6 +496,14 @@ class cNMF():
     
         ax1.set_yticks([])  # Clear the yaxis labels / ticks
         ax1.set_xticks([-1,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.4,0.6,0.8,1])
+        
+        plt.suptitle(
+            "Silhouette analysis for KMeans clustering with K = %d"
+            % k,
+            fontsize=14,
+            fontweight="bold",
+        )
+        plt.show()
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
