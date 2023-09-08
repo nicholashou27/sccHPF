@@ -503,7 +503,8 @@ class cNMF():
             fontsize=14,
             fontweight="bold",
         )
-        plt.show()
+        print(sample_silhouette_values)
+        plt.show(fig)
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
