@@ -185,7 +185,7 @@ class cNMF():
                 'consensus_stats': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.stats.k_%d.dt_%s.df.npz'),
 
                 'clustering_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d.dt_%s.pdf'),
-                'silhouette_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d'),
+                'silhouette_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d.pdf'),
                 'gene_spectra_score': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_score.k_%d.dt_%s.df.npz'),
                 'gene_spectra_score__txt': os.path.join(self.output_dir, self.name, self.name+'.gene_spectra_score.k_%d.dt_%s.txt'),
                 'gene_spectra_tpm': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_tpm.k_%d.dt_%s.df.npz'),
@@ -500,7 +500,7 @@ class cNMF():
         ax1.set_xticks([-1,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.4,0.6,0.8,1])
         
         plt.suptitle(
-            "Silhouette analysis for KMeans clustering with K = %d"
+            "Silhouette analysis for KMeans clustering with %d factors"
             % k,
             fontsize=14,
             fontweight="bold",
