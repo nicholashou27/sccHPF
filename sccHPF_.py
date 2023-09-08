@@ -453,61 +453,6 @@ class cNMF():
         # Compute the silhouette score
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
-        # Silhouette plot
-        import matplotlib.pyplot as plt
-        
-        fig_sil, ax1 = plt.subplots(1, 1)
-        fig_sil.set_size_inches(18, 7)
-        ax1.set_xlim([-1, 1])
-        ax1.set_ylim([0, len(l2_spectra.values) + (k + 1) * 10])
-        
-        sample_silhouette_values = silhouette_samples(l2_spectra.values, kmeans_cluster_labels)
-        y_lower = 10
-        for i in range(k):
-            # Aggregate the silhouette scores for samples belonging to
-            # cluster i, and sort them
-            ith_cluster_silhouette_values = sample_silhouette_values[kmeans_cluster_labels == i]
-    
-            ith_cluster_silhouette_values.sort()
-    
-            size_cluster_i = ith_cluster_silhouette_values.shape[0]
-            y_upper = y_lower + size_cluster_i
-    
-            color = cm.nipy_spectral(float(i) / k)
-            ax1.fill_betweenx(
-                np.arange(y_lower, y_upper),
-                0,
-                ith_cluster_silhouette_values,
-                facecolor=color,
-                edgecolor=color,
-                alpha=0.7,
-            )
-    
-            # Label the silhouette plots with their cluster numbers at the middle
-            ax1.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
-    
-            # Compute the new y_lower for next plot
-            y_lower = y_upper + 10  # 10 for the 0 samples
-    
-        ax1.set_title("The silhouette plot for K factors.")
-        ax1.set_xlabel("The silhouette coefficient values")
-        ax1.set_ylabel("Factor")
-    
-        # The vertical line for average silhouette score of all the values
-        ax1.axvline(x=stability, color="red", linestyle="--")
-    
-        ax1.set_yticks([])  # Clear the yaxis labels / ticks
-        ax1.set_xticks([-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1])
-        
-        plt.suptitle(
-            "Silhouette analysis for KMeans clustering with %d factors"
-            % k,
-            fontsize=14,
-            fontweight="bold",
-        )
-        plt.show()
-        fig_sil.savefig(self.paths['silhouette_plot']%k, dpi=250)
-
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
             n_components = k,
@@ -608,6 +553,62 @@ class cNMF():
             from matplotlib import gridspec
             import matplotlib.pyplot as plt
 
+            # Silhouette plot
+        
+            fig_sil, ax1 = plt.subplots(1, 1)
+            fig_sil.set_size_inches(18, 7)
+            ax1.set_xlim([-.1, 1])
+            ax1.set_ylim([0, len(l2_spectra.values) + (k + 1) * 10])
+            
+            sample_silhouette_values = silhouette_samples(l2_spectra.values, kmeans_cluster_labels)
+            y_lower = 10
+            for i in range(k):
+                # Aggregate the silhouette scores for samples belonging to
+                # cluster i, and sort them
+                ith_cluster_silhouette_values = sample_silhouette_values[kmeans_cluster_labels == i]
+        
+                ith_cluster_silhouette_values.sort()
+        
+                size_cluster_i = ith_cluster_silhouette_values.shape[0]
+                y_upper = y_lower + size_cluster_i
+        
+                color = cm.nipy_spectral(float(i) / k)
+                ax1.fill_betweenx(
+                    np.arange(y_lower, y_upper),
+                    0,
+                    ith_cluster_silhouette_values,
+                    facecolor=color,
+                    edgecolor=color,
+                    alpha=0.7,
+                )
+        
+                # Label the silhouette plots with their cluster numbers at the middle
+                ax1.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
+        
+                # Compute the new y_lower for next plot
+                y_lower = y_upper + 10  # 10 for the 0 samples
+        
+            ax1.set_title("The silhouette plot for K factors.")
+            ax1.set_xlabel("The silhouette coefficient values")
+            ax1.set_ylabel("Factor")
+        
+            # The vertical line for average silhouette score of all the values
+            ax1.axvline(x=stability, color="red", linestyle="--")
+        
+            ax1.set_yticks([])  # Clear the yaxis labels / ticks
+            ax1.set_xticks([-0.1,0,0.2,0.4,0.6,0.8,1])
+            
+            plt.suptitle(
+                "Silhouette analysis for KMeans clustering with %d factors"
+                % k,
+                fontsize=14,
+                fontweight="bold",
+            )
+            plt.show()
+            fig_sil.savefig(self.paths['silhouette_plot']%k, dpi=250)
+
+            # Cluster Plots
+        
             width_ratios = [0.5, 9, 0.5, 4, 1]
             height_ratios = [0.5, 9]
             fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
