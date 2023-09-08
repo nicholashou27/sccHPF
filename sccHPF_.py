@@ -454,8 +454,8 @@ class cNMF():
 
         # Silhouette plot
         
-        fig, ax1 = plt.subplots(1, 1)
-        fig.set_size_inches(18, 7)
+        fig_sil, ax1 = plt.subplots(1, 1)
+        fig_sil.set_size_inches(18, 7)
         ax1.set_xlim([-1, 1])
         ax1.set_ylim([0, len(l2_spectra.values) + (k + 1) * 10])
         
@@ -504,7 +504,7 @@ class cNMF():
             fontweight="bold",
         )
         print(sample_silhouette_values)
-        plt.show(fig)
+        plt.show(fig_sil)
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
