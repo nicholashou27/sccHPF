@@ -562,7 +562,8 @@ class cNMF():
             
             sample_silhouette_values = silhouette_samples(l2_spectra.values, kmeans_cluster_labels)
             y_lower = 10
-            for i in range(k):
+            # recent change here
+            for i in range(1,k+1):
                 # Aggregate the silhouette scores for samples belonging to
                 # cluster i, and sort them
                 ith_cluster_silhouette_values = sample_silhouette_values[kmeans_cluster_labels == i]
