@@ -276,7 +276,7 @@ class cNMF():
         save_df_to_npz(run_params, self.paths['nmf_parameters'])
 
 
-    def _nmf(self, X, nmf_kwargs, topic_labels=None):
+    def _nmf(self, X, nmf_kwargs, topic_labels=None, train_set=False, train_X=None): # EDIT 10/12/23
         """
         Parameters
         ----------
@@ -290,8 +290,15 @@ class cNMF():
         # (W, H, niter) = non_negative_factorization(X.values, **nmf_kwargs)
 
         adata = sc.AnnData(X)
+
+        # EDIT 10/12/23
+        if train_set:
+            train_adata = sc.AnnData(train_X)
+            hpf_model = schpf.run_trials(sp.coo_matrix(train_adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
+            hpf_model = schpf.project(sp.coo_matrix(adata.X), replace=True)
+        else:
+            hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
         
-        hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
         (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
 
         usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
@@ -313,6 +320,8 @@ class cNMF():
     def run_nmf(self,
                 nmf_kwargs = dict(),
                 worker_i=1, total_workers=1,
+                train_set=False, # EDIT 10/12/23
+                train_X=None # EDIT 10/12/23
                 ):
         """
         Iteratively run NMF with prespecified parameters.
@@ -368,8 +377,8 @@ class cNMF():
             _nmf_kwargs['random_state'] = p['nmf_seed']
             _nmf_kwargs['n_components'] = p['n_components']
 
-
-            spectra, usages = self._nmf(norm_counts, _nmf_kwargs)
+            # 10/12/23 EDIT 
+            spectra, usages = self._nmf(norm_counts, _nmf_kwargs, train_set, train_X) # EDIT 10/12/23
 
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
             #save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
