@@ -413,7 +413,9 @@ class cNMF():
         return combined_spectra
 
 
-    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True):
+    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
+                train_set=False, # EDIT 10/12/23
+                train_X=None # EDIT 10/12/23):
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
 
@@ -479,7 +481,9 @@ class cNMF():
         )
         _, rf_usages = self._nmf(norm_counts,
                                  nmf_kwargs=refit_nmf_kwargs,
-                                 topic_labels=np.arange(1,k+1)
+                                 topic_labels=np.arange(1,k+1), 
+                                 train_set, 
+                                 train_X
                                 )
         # EDIT 10/12/23
         # rf_model = schpf.project(sp.coo_matrix(sc.AnnData(norm_counts)), replace=True)
@@ -541,7 +545,7 @@ class cNMF():
             regularization=None,
         )
         _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs,
-                                          topic_labels=np.arange(1,k+1))
+                                          topic_labels=np.arange(1,k+1), train_set, train_X)
         spectra_tpm = spectra_tpm.T
         spectra_tpm.sort_index(ascending=True, inplace=True)
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
