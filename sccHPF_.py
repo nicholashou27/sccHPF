@@ -381,7 +381,7 @@ class cNMF():
             spectra, usages = self._nmf(norm_counts, _nmf_kwargs, train_set, train_X) # EDIT 10/12/23
 
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
-            #save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
+            save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
 
 
     def combine_nmf(self, k, remove_individual_iterations=False):
