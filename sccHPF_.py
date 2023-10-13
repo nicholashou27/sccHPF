@@ -479,20 +479,15 @@ class cNMF():
             max_iter=1000,
             regularization=None,
         )
+
+        # The below usage matrix rf_usages is not fitted to the consensus GEP matrix median_spectra since scHPF does not allow input
+        # of a constraint GEP matrix like NMF does with update_H
         _, rf_usages = self._nmf(norm_counts,
                                  nmf_kwargs=refit_nmf_kwargs,
                                  topic_labels=np.arange(1,k+1), 
                                  train_set, 
                                  train_X
                                 )
-        # EDIT 10/12/23
-        # rf_model = schpf.project(sp.coo_matrix(sc.AnnData(norm_counts)), replace=True)
-        # (rf_W, rf_H) = rf_model.cell_score(), rf_model.gene_score()
-        # usages = pd.DataFrame(rf_W, index=norm_counts.index, columns=topic_labels)
-        # spectra = pd.DataFrame(np.transpose(rf_H), columns=norm_counts.columns, index=topic_labels)
-        # topic_order = spectra.sum(axis=1).sort_values(ascending=False).index
-        # rf_spectra = spectra.loc[topic_order, :]
-        # rf_usages = usages.loc[:, topic_order]
 
         if topic_labels is None:
             spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
