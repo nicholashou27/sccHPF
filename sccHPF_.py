@@ -391,10 +391,12 @@ class cNMF():
         self._initialize_dirs()
 
         combined_spectra = None
+        combined_usages = None
         n_iter = sum(run_params.n_components==k)
 
         run_params_subset = run_params[run_params.n_components==k].sort_values('iter')
         spectra_labels = []
+        usages_labels = []
 
         for i,p in run_params_subset.iterrows():
 
@@ -403,14 +405,24 @@ class cNMF():
                 combined_spectra = np.zeros((n_iter, k, spectra.shape[1]))
             combined_spectra[p['iter'], :, :] = spectra.values
 
+            usages = load_df_from_npz(self.paths['iter_usages'] % (p['n_components'], p['iter']))
+            if combined_usages is None:
+                combined_usages = np.zeros((n_iter, usages.shape[0], k))
+            combined_usages[p['iter'], :, :] = usages.values
+
             for t in range(k):
             	spectra_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                usages.append('iter%d_topic%d'%(p['iter'], t+1))
 
         combined_spectra = combined_spectra.reshape(-1, combined_spectra.shape[-1])
         combined_spectra = pd.DataFrame(combined_spectra, columns=spectra.columns, index=spectra_labels)
-
         save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
-        return combined_spectra
+
+        combined_usages= combined_usages.reshape(-1, combined_usages.shape[-1])
+        combined_usages = pd.DataFrame(combined_usages, columns=usages.columns, index=usages_labels)
+        save_df_to_npz(combined_spectra, self.paths['merged_usages']%k)
+        
+        return combined_spectra, combined_usages
 
 
     def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
