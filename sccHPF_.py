@@ -481,7 +481,8 @@ class cNMF():
         )
 
         # The below usage matrix rf_usages is not fitted to the consensus GEP matrix median_spectra since scHPF does not allow input
-        # of a constraint GEP matrix like NMF does with update_H. Perhaps, we could use NMF at this step? Or just leave it be? 
+        # of a constraint GEP matrix like NMF does with update_H. Perhaps, we could use NMF at this step? Or find the usage matrix 
+        # that corresponds to the consensus GEP matrix.
         _, rf_usages = self._nmf(norm_counts,
                                  nmf_kwargs=refit_nmf_kwargs,
                                  topic_labels=np.arange(1,k+1), 
