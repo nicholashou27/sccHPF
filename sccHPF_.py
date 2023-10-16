@@ -341,7 +341,6 @@ class cNMF():
                 nmf_kwargs = dict(),
                 worker_i=1, total_workers=1,
                 train_set=False, # EDIT 10/12/23
-                train_X=None # EDIT 10/12/23
                 ):
         """
         Iteratively run NMF with prespecified parameters.
@@ -377,8 +376,10 @@ class cNMF():
         run_params = load_df_from_npz(self.paths['nmf_parameters'])
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
         if train_set:
+            print('Training with projection...')
             train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
         else:
+            print('Training...')
             train_norm_counts = None 
 
         _nmf_kwargs = dict(
@@ -401,7 +402,9 @@ class cNMF():
             _nmf_kwargs['n_components'] = p['n_components']
 
             # 10/12/23 EDIT 
-            spectra, usages = self._nmf(norm_counts, _nmf_kwargs, train_set, train_norm_counts) # EDIT 10/12/23
+            spectra, usages = self._nmf(norm_counts, _nmf_kwargs, 
+                                        train_set=train_set, 
+                                        train_X=train_norm_counts) # EDIT 10/12/23
 
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
             save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
@@ -451,8 +454,7 @@ class cNMF():
 
 
     def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
-                train_set=False, # EDIT 10/12/23
-                train_X=None): # EDIT 10/12/23
+                train_set=False): # EDIT 10/12/23
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
 
@@ -520,11 +522,16 @@ class cNMF():
         # The below usage matrix rf_usages is not fitted to the consensus GEP matrix median_spectra since scHPF does not allow input
         # of a constraint GEP matrix like NMF does with update_H. Perhaps, we could use NMF at this step? Or find the usage matrix 
         # that corresponds to the consensus GEP matrix.
+        if train_set:
+            train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
+        else:
+            train_norm_counts = None 
+            
         _, rf_usages = self._nmf(norm_counts,
                                  nmf_kwargs=refit_nmf_kwargs,
                                  topic_labels=np.arange(1,k+1), 
                                  train_set=train_set, 
-                                 train_X=train_X
+                                 train_X=train_norm_counts
                                 )
 
         if topic_labels is None:
@@ -577,8 +584,8 @@ class cNMF():
             max_iter=1000,
             regularization=None,
         )
-        _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs,
-                                          topic_labels=np.arange(1,k+1), train_set=train_set, train_X=train_X)
+        _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs, topic_labels=np.arange(1,k+1), 
+                                   train_set=train_set, train_X=train_norm_counts)
         spectra_tpm = spectra_tpm.T
         spectra_tpm.sort_index(ascending=True, inplace=True)
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
