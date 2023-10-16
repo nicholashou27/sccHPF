@@ -430,22 +430,26 @@ class cNMF():
             if combined_spectra is None:
                 combined_spectra = np.zeros((n_iter, k, spectra.shape[1]))
             combined_spectra[p['iter'], :, :] = spectra.values
+            print(combined_spectra.shape)
 
             usages = load_df_from_npz(self.paths['iter_usages'] % (p['n_components'], p['iter']))
             if combined_usages is None:
                 combined_usages = np.zeros((n_iter, usages.shape[0], k))
             combined_usages[p['iter'], :, :] = usages.values
+            print(combined_usages.shape)
 
             for t in range(k):
                 spectra_labels.append('iter%d_topic%d'%(p['iter'], t+1))
                 usages_labels.append('iter%d_topic%d'%(p['iter'], t+1))
 
         combined_spectra = combined_spectra.reshape(-1, combined_spectra.shape[-1])
+        print(combined_spectra.shape)
         combined_spectra = pd.DataFrame(combined_spectra, columns=spectra.columns, index=spectra_labels)
         print(combined_spectra.head())
         save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
 
         combined_usages= combined_usages.reshape(-1, combined_usages.shape[-1])
+        print(combined_usages.shape)
         combined_usages = pd.DataFrame(combined_usages, columns=usages.columns, index=usages_labels)
         print(combined_usages.head())
         save_df_to_npz(combined_usages, self.paths['merged_usages']%k)
