@@ -578,7 +578,7 @@ class cNMF():
             regularization=None,
         )
         _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs,
-                                          topic_labels=np.arange(1,k+1), train_set, train_X)
+                                          topic_labels=np.arange(1,k+1), train_set=train_set, train_X=train_X)
         spectra_tpm = spectra_tpm.T
         spectra_tpm.sort_index(ascending=True, inplace=True)
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
