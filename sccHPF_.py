@@ -448,9 +448,9 @@ class cNMF():
         print(combined_spectra.head())
         save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
 
-        combined_usages= combined_usages.reshape(-1, combined_usages.shape[-1])
+        combined_usages = combined_usages.reshape(-1, combined_usages.shape[-2]).T
         print(combined_usages.shape)
-        combined_usages = pd.DataFrame(combined_usages, columns=usages.columns, index=usages_labels)
+        combined_usages = pd.DataFrame(combined_usages, columns=usages_labels, index=usages.index)
         print(combined_usages.head())
         save_df_to_npz(combined_usages, self.paths['merged_usages']%k)
         
