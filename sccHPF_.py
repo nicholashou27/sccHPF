@@ -172,9 +172,15 @@ class cNMF():
                 'tpm' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.tpm.df.npz'),
                 'tpm_stats' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.tpm_stats.df.npz'),
 
+                'train_normalized_counts' : os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.train_norm_counts.df.npz'),
+                'train_nmf_parameters' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.train_nmf_params.df.npz'),
+                'train_tpm' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.train_tpm.df.npz'),
+                'train_tpm_stats' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.train_tpm_stats.df.npz'),
+
                 'iter_spectra' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.spectra.k_%d.iter_%d.df.npz'),
                 'iter_usages' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.usages.k_%d.iter_%d.df.npz'),
                 'merged_spectra': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.spectra.k_%d.merged.df.npz'),
+                'merged_usages': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.usages.k_%d.merged.df.npz'),
 
                 'local_density_cache': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.local_density_cache.k_%d.merged.df.npz'),
                 'consensus_spectra': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.spectra.k_%d.dt_%s.consensus.df.npz'),
@@ -197,8 +203,10 @@ class cNMF():
 
 
     def get_norm_counts(self, counts_df,
-                         high_variance_genes_filter = None,
-                         num_highvar_genes = None
+                        high_variance_genes_filter = None,
+                        num_highvar_genes = None,
+                        train_set=False,
+                        train_counts_df=None
                          ):
         """
         Parameters
@@ -221,11 +229,23 @@ class cNMF():
         high_var_counts = counts_df.loc[:, high_variance_genes_filter]
         norm_counts = high_var_counts/high_var_counts.std()
         norm_counts = norm_counts.fillna(0.0)
-        return norm_counts
+
+        if train_set: 
+            train_high_var_counts = train_counts_df.loc[:, high_variance_genes_filter]
+            train_norm_counts = train_high_var_counts/train_high_var_counts.std()
+            train_norm_counts = train_norm_counts.fillna(0.0)
+            
+            return norm_counts, train_norm_counts 
+        else:                   
+            return norm_counts
 
     def save_norm_counts(self, norm_counts_df):
         self._initialize_dirs()
         save_df_to_npz(norm_counts_df, self.paths['normalized_counts'])
+
+    def save_train_norm_counts(self, train_norm_counts_df):
+        self._initialize_dirs()
+        save_df_to_npz(train_norm_counts_df, self.paths['train_normalized_counts'])
 
     def get_nmf_iter_params(self, ks, n_iter = 100,
                                random_state_seed = None):
@@ -356,7 +376,10 @@ class cNMF():
         self._initialize_dirs()
         run_params = load_df_from_npz(self.paths['nmf_parameters'])
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
-
+        if train_set:
+            train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
+        else:
+            train_norm_counts = None 
 
         _nmf_kwargs = dict(
             alpha=0.0,
@@ -378,7 +401,7 @@ class cNMF():
             _nmf_kwargs['n_components'] = p['n_components']
 
             # 10/12/23 EDIT 
-            spectra, usages = self._nmf(norm_counts, _nmf_kwargs, train_set, train_X) # EDIT 10/12/23
+            spectra, usages = self._nmf(norm_counts, _nmf_kwargs, train_set, train_norm_counts) # EDIT 10/12/23
 
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
             save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
@@ -416,11 +439,13 @@ class cNMF():
 
         combined_spectra = combined_spectra.reshape(-1, combined_spectra.shape[-1])
         combined_spectra = pd.DataFrame(combined_spectra, columns=spectra.columns, index=spectra_labels)
+        print(combined_spectra.head())
         save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
 
         combined_usages= combined_usages.reshape(-1, combined_usages.shape[-1])
         combined_usages = pd.DataFrame(combined_usages, columns=usages.columns, index=usages_labels)
-        save_df_to_npz(combined_spectra, self.paths['merged_usages']%k)
+        print(combined_usages.head())
+        save_df_to_npz(combined_usages, self.paths['merged_usages']%k)
         
         return combined_spectra, combined_usages
 
