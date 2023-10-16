@@ -523,8 +523,8 @@ class cNMF():
         _, rf_usages = self._nmf(norm_counts,
                                  nmf_kwargs=refit_nmf_kwargs,
                                  topic_labels=np.arange(1,k+1), 
-                                 train_set, 
-                                 train_X
+                                 train_set=train_set, 
+                                 train_X=train_X
                                 )
 
         if topic_labels is None:
