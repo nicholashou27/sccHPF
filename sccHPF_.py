@@ -434,7 +434,7 @@ class cNMF():
             combined_usages[p['iter'], :, :] = usages.values
 
             for t in range(k):
-            	spectra_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                spectra_labels.append('iter%d_topic%d'%(p['iter'], t+1))
                 usages.append('iter%d_topic%d'%(p['iter'], t+1))
 
         combined_spectra = combined_spectra.reshape(-1, combined_spectra.shape[-1])
