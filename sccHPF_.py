@@ -315,7 +315,7 @@ class cNMF():
         if train_set:
             train_adata = sc.AnnData(train_X)
             hpf_model = schpf.run_trials(sp.coo_matrix(train_adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
-            hpf_model = hpf_model.project(sp.coo_matrix(adata.X), replace=True)
+            hpf_model.project(sp.coo_matrix(adata.X), replace=True)
         else:
             hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
         
