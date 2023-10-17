@@ -451,7 +451,7 @@ class cNMF():
         return combined_spectra, combined_usages
 
 
-    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
+    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = True, close_clustergram_fig=True,
                 train_set=False): # EDIT 10/12/23
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         merged_usages = load_df_from_npz(self.paths['merged_usages']%k)
