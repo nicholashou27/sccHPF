@@ -454,7 +454,14 @@ class cNMF():
     def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
                 train_set=False): # EDIT 10/12/23
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
+        merged_usages = sccHPF.load_df_from_npz(self.paths['merged_usages']%k)
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
+
+        def median_index(lst):
+            sorted_lst = sorted(lst)
+            mid = len(lst) // 2
+            median = sorted_lst[mid]
+            return lst.index(median)
 
         if skip_density_and_return_after_stats:
             density_threshold_str = '2'
@@ -501,6 +508,39 @@ class cNMF():
         # Compute the silhouette score
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
+        # Determine the factor replicates that produce the median L2_spectra scores in each gene across KMeans clusters 
+        median_replicates_df = pd.DataFrame(0,
+                                    columns=l2_spectra.columns,
+                                    index=[i for i in range(1,k+1)]
+                                    )
+
+        for i in range(l2_spectra.shape[1]):
+            df = pd.DataFrame()
+            df['replicate'] = l2_spectra.index.tolist()
+            df['kmeans_cluster_labels'] = kmeans_cluster_labels.tolist()
+            df['spectra_score'] = l2_spectra.iloc[:,i].tolist()
+        
+            median_replicates = []
+            for c in range(1,k+1):
+                idx = median_index(df[df['kmeans_cluster_labels']==c]['spectra_score'].tolist())
+                median_replicates.append(df[df['kmeans_cluster_labels']==c]['replicate'].tolist()[idx])
+                
+            median_replicates_df.iloc[:,i] = median_replicates
+
+        # Determine the mode factor replicate for each KMeans cluster 
+        mode_spectra = pd.DataFrame()
+        mode_usages = pd.DataFrame()
+        
+        for i in range(0,k):
+            mode_replicate = median_replicates_df.iloc[i,:].mode()
+            mode_spectra['Cluster %d'%(i+1)] = l2_spectra.T[mode_replicate].values[:,0].tolist()
+            mode_usages['Cluster %d'%(i+1)] = merged_usages[mode_replicate].values[:,0].tolist()
+
+        # Normalize mode spectra to probability distributions.
+        mode_spectra = mode_spectra.T
+        mode_spectra = (mode_spectra.T/mode_spectra.sum(axis=1)).T
+        mode_spectra.columns, mode_spectra.index = median_spectra.columns, median_spectra.index
+
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
             n_components = k,
@@ -525,19 +565,23 @@ class cNMF():
         else:
             train_norm_counts = None 
             
-        _, rf_usages = self._nmf(norm_counts,
-                                 nmf_kwargs=refit_nmf_kwargs,
-                                 topic_labels=np.arange(1,k+1), 
-                                 train_set=train_set, 
-                                 train_X=train_norm_counts
-                                )
+        #  _, rf_usages = self._nmf(norm_counts,
+        #                           nmf_kwargs=refit_nmf_kwargs,
+        #                           topic_labels=np.arange(1,k+1), 
+        #                           train_set=train_set, 
+        #                           train_X=train_norm_counts
+        #                          )
+
+        rf_usages = mode_usages
 
         if topic_labels is None:
             spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
             usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
         
-        rf_usages = pd.DataFrame(rf_usages, index=norm_counts.index, columns=median_spectra.index)
-        rf_pred_norm_counts = rf_usages.dot(median_spectra)
+        # rf_usages = pd.DataFrame(rf_usages, index=norm_counts.index, columns=median_spectra.index)
+        rf_usages = pd.DataFrame(mode_usages.values, index=norm_counts.index, columns=median_spectra.index)
+        # rf_pred_norm_counts = rf_usages.dot(median_spectra)
+        rf_pred_norm_counts = rf_usages.dot(mode_spectra)
 
         # Compute prediction error as a frobenius norm
         frobenius_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
@@ -549,10 +593,12 @@ class cNMF():
         if skip_density_and_return_after_stats:
             return consensus_stats
         
-        save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
+        # save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
+        save_df_to_npz(mode_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
         save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
-        save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
+        # save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
+        save_df_to_text(mode_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
         save_df_to_text(rf_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
 
         # Compute gene-scores for each GEP by regressing usage on Z-scores of TPM
