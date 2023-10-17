@@ -574,6 +574,9 @@ class cNMF():
 
         rf_usages = mode_usages
 
+        nmf_kwargs=refit_nmf_kwargs
+        topic_labels=np.arange(1,k+1)
+
         if topic_labels is None:
             spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
             usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
