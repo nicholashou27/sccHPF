@@ -617,27 +617,27 @@ class cNMF():
 
         # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
         # with usages fixed and TPM as the input matrix
-        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
-        fit_tpm_nmf_kwargs = dict(
-            n_components = k,
-            H = norm_usages.T.values,
-            update_H = False,
-            shuffle = True,
+        # norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
+        # fit_tpm_nmf_kwargs = dict(
+        #     n_components = k,
+        #     H = norm_usages.T.values,
+        #     update_H = False,
+        #     shuffle = True,
 
-            alpha=0.0,
-            l1_ratio=0.0,
-            beta_loss='frobenius',
-            solver='cd',
-            tol=1e-4,
-            max_iter=1000,
-            regularization=None,
-        )
-        _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs, topic_labels=np.arange(1,k+1), 
-                                   train_set=train_set, train_X=train_norm_counts)
-        spectra_tpm = spectra_tpm.T
-        spectra_tpm.sort_index(ascending=True, inplace=True)
-        save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
-        save_df_to_text(spectra_tpm, self.paths['gene_spectra_tpm__txt']%(k, density_threshold_repl))
+        #     alpha=0.0,
+        #     l1_ratio=0.0,
+        #     beta_loss='frobenius',
+        #     solver='cd',
+        #     tol=1e-4,
+        #     max_iter=1000,
+        #     regularization=None,
+        # )
+        # _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs, topic_labels=np.arange(1,k+1), 
+        #                            train_set=train_set, train_X=train_norm_counts)
+        # spectra_tpm = spectra_tpm.T
+        # spectra_tpm.sort_index(ascending=True, inplace=True)
+        # save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
+        # save_df_to_text(spectra_tpm, self.paths['gene_spectra_tpm__txt']%(k, density_threshold_repl))
 
         if show_clustering:
             if topics_dist is None:
