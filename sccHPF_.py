@@ -474,28 +474,28 @@ class cNMF():
         l2_spectra = (merged_spectra.T/np.sqrt((merged_spectra**2).sum(axis=1))).T
         l2_usages = merged_usages.T/np.sqrt((merged_usages**2).sum(axis=1))
 
-        topics_dist = None 
-        # if not skip_density_and_return_after_stats:
-        #     # Compute the local density matrix (if not previously cached)
-        #     topics_dist = None
-        #     if os.path.isfile(self.paths['local_density_cache'] % k):
-        #         local_density = load_df_from_npz(self.paths['local_density_cache'] % k)
-        #     else:
-        #         #   first find the full distance matrix
-        #         topics_dist = squareform(fast_euclidean(l2_spectra.values))
-        #         #   partition based on the first n neighbors
-        #         partitioning_order  = np.argpartition(topics_dist, n_neighbors+1)[:, :n_neighbors+1]
-        #         #   find the mean over those n_neighbors (excluding self, which has a distance of 0)
-        #         distance_to_nearest_neighbors = topics_dist[np.arange(topics_dist.shape[0])[:, None], partitioning_order]
-        #         local_density = pd.DataFrame(distance_to_nearest_neighbors.sum(1)/(n_neighbors),
-        #                                      columns=['local_density'],
-        #                                      index=l2_spectra.index)
-        #         save_df_to_npz(local_density, self.paths['local_density_cache'] % k)
-        #         del(partitioning_order)
-        #         del(distance_to_nearest_neighbors)
+        if not skip_density_and_return_after_stats:
+            # Compute the local density matrix (if not previously cached)
+            topics_dist = None
+            if os.path.isfile(self.paths['local_density_cache'] % k):
+                local_density = load_df_from_npz(self.paths['local_density_cache'] % k)
+            else:
+                #   first find the full distance matrix
+                topics_dist = squareform(fast_euclidean(l2_spectra.values))
+                #   partition based on the first n neighbors
+                partitioning_order  = np.argpartition(topics_dist, n_neighbors+1)[:, :n_neighbors+1]
+                #   find the mean over those n_neighbors (excluding self, which has a distance of 0)
+                distance_to_nearest_neighbors = topics_dist[np.arange(topics_dist.shape[0])[:, None], partitioning_order]
+                local_density = pd.DataFrame(distance_to_nearest_neighbors.sum(1)/(n_neighbors),
+                                             columns=['local_density'],
+                                             index=l2_spectra.index)
+                print(local_density)
+                save_df_to_npz(local_density, self.paths['local_density_cache'] % k)
+                del(partitioning_order)
+                del(distance_to_nearest_neighbors)
 
-        #     density_filter = local_density.iloc[:, 0] < density_threshold
-        #     l2_spectra = l2_spectra.loc[density_filter, :]
+            density_filter = local_density.iloc[:, 0] < density_threshold
+            l2_spectra = l2_spectra.loc[density_filter, :]
 
         kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
         kmeans_model.fit(l2_spectra)
