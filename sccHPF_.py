@@ -563,9 +563,9 @@ class cNMF():
             regularization=None,
         )
 
-        # The below usage matrix rf_usages is not fitted to the consensus GEP matrix median_spectra since scHPF does not allow input
-        # of a constraint GEP matrix like NMF does with update_H. Perhaps, we could use NMF at this step? Or find the usage matrix 
-        # that corresponds to the consensus GEP matrix.
+        # Rather than taking the median spectra for each gene across cluster as the final spectra matrix, find mode replicate by 
+        # finding the index of each median spectra in each gene across cluster. Use the mode replicate in each cluster to output 
+        # the mode spectra matrix AND usage matrix.
         if train_set:
             train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
         else:
