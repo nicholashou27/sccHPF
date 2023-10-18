@@ -495,7 +495,7 @@ class cNMF():
                 del(distance_to_nearest_neighbors)
 
             density_filter = local_density.iloc[:, 0] < density_threshold
-            l2_spectra = l2_spectra.loc[density_filter, :]
+            # l2_spectra = l2_spectra.loc[density_filter, :]
 
         kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
         kmeans_model.fit(l2_spectra)
