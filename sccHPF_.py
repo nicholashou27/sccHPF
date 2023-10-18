@@ -486,10 +486,14 @@ class cNMF():
                 partitioning_order  = np.argpartition(topics_dist, n_neighbors+1)[:, :n_neighbors+1]
                 #   find the mean over those n_neighbors (excluding self, which has a distance of 0)
                 distance_to_nearest_neighbors = topics_dist[np.arange(topics_dist.shape[0])[:, None], partitioning_order]
-                local_density = pd.DataFrame(distance_to_nearest_neighbors.sum(1)/(n_neighbors),
-                                             columns=['local_density'],
-                                             index=l2_spectra.index)
-                print(local_density)
+                if n_neighbors == 0:
+                    local_density = pd.DataFrame(distance_to_nearest_neighbors.sum(1)/1,
+                                                columns=['local_density'],
+                                                index=l2_spectra.index)
+                else:
+                    local_density = pd.DataFrame(distance_to_nearest_neighbors.sum(1)/(n_neighbors),
+                                                columns=['local_density'],
+                                                index=l2_spectra.index)
                 save_df_to_npz(local_density, self.paths['local_density_cache'] % k)
                 del(partitioning_order)
                 del(distance_to_nearest_neighbors)
