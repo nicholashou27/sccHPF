@@ -474,6 +474,7 @@ class cNMF():
         l2_spectra = (merged_spectra.T/np.sqrt((merged_spectra**2).sum(axis=1))).T
         l2_usages = merged_usages.T/np.sqrt((merged_usages**2).sum(axis=1))
 
+        topics_dist = None 
         # if not skip_density_and_return_after_stats:
         #     # Compute the local density matrix (if not previously cached)
         #     topics_dist = None
