@@ -809,7 +809,7 @@ class cNMF():
         #ax1.set_xlabel('K', fontsize=15)
 
         ax2.plot(stats.k, stats.prediction_error, 'o-', color='r')
-        ax2.set_ylabel('Frobenius Error', color='r', fontsize=15)
+        ax2.set_ylabel('Sum of the Squared Errors', color='r', fontsize=15)
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
 
