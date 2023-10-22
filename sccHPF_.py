@@ -455,7 +455,7 @@ class cNMF():
                 train_set=False): # EDIT 10/12/23
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         merged_usages = load_df_from_npz(self.paths['merged_usages']%k)
-        merged_usages = merged_usages.T
+        # merged_usages = merged_usages.T
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
 
         def median_index(lst):
@@ -472,7 +472,7 @@ class cNMF():
 
         # Rescale topics such to length of 1.
         l2_spectra = (merged_spectra.T/np.sqrt((merged_spectra**2).sum(axis=1))).T
-        l2_usages = merged_usages.T/np.sqrt((merged_usages**2).sum(axis=1))
+        # l2_usages = merged_usages.T/np.sqrt((merged_usages**2).sum(axis=1))
 
         if not skip_density_and_return_after_stats:
             # Compute the local density matrix (if not previously cached)
@@ -506,10 +506,10 @@ class cNMF():
         kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
 
         # Find median usage for each gene across cluster
-        median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
+        # median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
 
         # Normalize median spectra to probability distributions.
-        median_spectra = (median_spectra.T/median_spectra.sum(1)).T
+        # median_spectra = (median_spectra.T/median_spectra.sum(1)).T
 
         # Compute the silhouette score
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
@@ -540,7 +540,7 @@ class cNMF():
         for i in range(0,k):
             mode_replicate = median_replicates_df.iloc[i,:].mode()
             mode_spectra['Cluster %d'%(i+1)] = l2_spectra.T[mode_replicate].values[:,0].tolist()
-            mode_usages['Cluster %d'%(i+1)] = l2_usages[mode_replicate].values[:,0].tolist()
+            mode_usages['Cluster %d'%(i+1)] = merged_usages[mode_replicate].values[:,0].tolist()
 
         # Normalize mode spectra to probability distributions.
         mode_spectra = mode_spectra.T
