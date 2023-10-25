@@ -323,10 +323,10 @@ class cNMF():
         # EDIT 10/12/23
         if train_set:
             train_adata = sc.AnnData(train_X)
-            hpf_model = schpf.run_trials(sp.coo_matrix(train_adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
+            hpf_model = schpf.run_trials(sp.coo_matrix(train_adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
             hpf_model.project(sp.coo_matrix(adata.X), replace=True)
         else:
-            hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
+            hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
         
         # (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
         H = hpf_model.gene_score()
