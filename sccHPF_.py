@@ -179,8 +179,17 @@ class cNMF():
 
                 'iter_spectra' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.spectra.k_%d.iter_%d.df.npz'),
                 'iter_usages' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.usages.k_%d.iter_%d.df.npz'),
+                'iter_beta_shape' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.beta_shape.k_%d.iter_%d.df.npz'),
+                'iter_beta_rate' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.beta_rate.k_%d.iter_%d.df.npz'),
+                'iter_eta_shape' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.eta_shape.k_%d.iter_%d.df.npz'),
+                'iter_eta_rate' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.eta_rate.k_%d.iter_%d.df.npz'),
+                
                 'merged_spectra': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.spectra.k_%d.merged.df.npz'),
                 'merged_usages': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.usages.k_%d.merged.df.npz'),
+                'merged_beta_shape': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.beta_shape.k_%d.merged.df.npz'),
+                'merged_beta_rate': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.beta_rate.k_%d.merged.df.npz'),
+                'merged_eta_shape': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.eta_shape.k_%d.merged.df.npz'),
+                'merged_eta_rate': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.eta_rate.k_%d.merged.df.npz'),
 
                 'local_density_cache': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.local_density_cache.k_%d.merged.df.npz'),
                 'consensus_spectra': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.spectra.k_%d.dt_%s.consensus.df.npz'),
@@ -227,12 +236,12 @@ class cNMF():
             gene_counts_stats, gene_fano_params = get_high_var_genes(tpm_df, numgenes=num_highvar_genes)
             high_variance_genes_filter = gene_counts_stats.high_var
         high_var_counts = counts_df.loc[:, high_variance_genes_filter]
-        norm_counts = high_var_counts/high_var_counts.std()
+        # norm_counts = high_var_counts/high_var_counts.std()
         norm_counts = norm_counts.fillna(0.0)
 
         if train_set: 
             train_high_var_counts = train_counts_df.loc[:, high_variance_genes_filter]
-            train_norm_counts = train_high_var_counts/train_high_var_counts.std()
+            # train_norm_counts = train_high_var_counts/train_high_var_counts.std()
             train_norm_counts = train_norm_counts.fillna(0.0)
             
             return norm_counts, train_norm_counts 
@@ -319,22 +328,41 @@ class cNMF():
         else:
             hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
         
-        (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
+        # (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
+        H = hpf_model.gene_score()
 
-        usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
+        # usages = pd.DataFrame(W, index=X.index, columns=topic_labels)
         spectra = pd.DataFrame(np.transpose(H), columns=X.columns, index=topic_labels)
+        
+        beta_shape = pd.DataFrame(hpf_model.beta.vi_shape, columns = X.columns, index=topic_labels)
+        beta_rate = pd.DataFrame(hpf_model.beta.vi_rate, columns = X.columns, index=topic_labels)
+
+        eta_shape = pd.DataFrame(hpf_model.beta.vi_shape, columns = X.columns)
+        eta_shape = pd.concat([eta_shape] * spectra.shape[1], axis=1, index=topic_labels)
+        eta_rate = pd.DataFrame(hpf_model.beta.vi_shape, columns = X.columns, index=topic_labels) 
+        eta_rate = pd.concat([eta_rate] * spectra.shape[1], axis=1, index=topic_labels)
 
         #Sort by overall usage, and rename topics with 1-indexing.
         topic_order = spectra.sum(axis=1).sort_values(ascending=False).index
 
         spectra = spectra.loc[topic_order, :]
-        usages = usages.loc[:, topic_order]
+        # usages = usages.loc[:, topic_order]
+
+        beta_shape = beta_shape.loc[topic_order, :]
+        beta_rate = beta_rate.loc[topic_order, :]
+        
+        eta_shape = eta_shape.loc[topic_order, :]
+        eta_rate = eta_rate.loc[topic_order, :]
 
         if topic_labels is None:
             spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
-            usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
+            # usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
+            beta_shape.index = np.arange(1, nmf_kwargs['n_components']+1)
+            beta_rate.index = np.arange(1, nmf_kwargs['n_components']+1)
+            eta_shape.index = np.arange(1, nmf_kwargs['n_components']+1)
+            eta_rate.index = np.arange(1, nmf_kwargs['n_components']+1)
 
-        return spectra, usages
+        return spectra, beta_shape, beta_rate, eta_shape, eta_rate
 
 
     def run_nmf(self,
@@ -402,12 +430,18 @@ class cNMF():
             _nmf_kwargs['n_components'] = p['n_components']
 
             # 10/12/23 EDIT 
-            spectra, usages = self._nmf(norm_counts, _nmf_kwargs, 
-                                        train_set=train_set, 
-                                        train_X=train_norm_counts) # EDIT 10/12/23
+            spectra, beta_shape, beta_rate, eta_shape, eta_rate = self._nmf(norm_counts, _nmf_kwargs, 
+                                                                            train_set=train_set, 
+                                                                            train_X=train_norm_counts) 
 
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
-            save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
+            # save_df_to_npz(usages, self.paths['iter_usages'] % (p['n_components'],p['iter']))
+
+            save_df_to_npz(beta_shape, self.paths['iter_beta_shape'] % (p['n_components'], p['iter']))
+            save_df_to_npz(beta_rate, self.paths['iter_beta_rate'] % (p['n_components'],p['iter']))
+
+            save_df_to_npz(eta_shape, self.paths['iter_eta_shape'] % (p['n_components'], p['iter']))
+            save_df_to_npz(eta_rate, self.paths['iter_eta_rate'] % (p['n_components'],p['iter']))
 
 
     def combine_nmf(self, k, remove_individual_iterations=False):
@@ -418,6 +452,10 @@ class cNMF():
 
         combined_spectra = None
         combined_usages = None
+        combined_beta_shape = None
+        combined_beta_rate = None
+        combined_eta_shape = None
+        combined_eta_rate = None 
         n_iter = sum(run_params.n_components==k)
 
         run_params_subset = run_params[run_params.n_components==k].sort_values('iter')
@@ -431,31 +469,79 @@ class cNMF():
                 combined_spectra = np.zeros((n_iter, k, spectra.shape[1]))
             combined_spectra[p['iter'], :, :] = spectra.values
 
+            beta_shape = load_df_from_npz(self.paths['iter_beta_shape'] % (p['n_components'], p['iter']))
+            if combined_beta_shape is None:
+                combined_beta_shape = np.zeros((n_iter, k, beta_shape.shape[1]))
+            combined_beta_shape[p['iter'], :, :] = beta_shape.values
+
+            beta_rate = load_df_from_npz(self.paths['iter_beta_rate'] % (p['n_components'], p['iter']))
+            if combined_beta_rate is None:
+                combined_beta_rate = np.zeros((n_iter, k, beta_rate.shape[1]))
+            combined_beta_rate[p['iter'], :, :] = beta_rate.values
+
+            eta_shape = load_df_from_npz(self.paths['iter_eta_shape'] % (p['n_components'], p['iter']))
+            if combined_eta_shape is None:
+                combined_beta_shape = np.zeros((n_iter, k, eta_shape.shape[1]))
+            combined_beta_shape[p['iter'], :, :] = eta_shape.values
+
+            eta_rate = load_df_from_npz(self.paths['iter_eta_rate'] % (p['n_components'], p['iter']))
+            if combined_eta_rate is None:
+                combined_eta_rate = np.zeros((n_iter, k, eta_rate.shape[1]))
+            combined_eta_rate[p['iter'], :, :] = eta_rate.values
+
+            """
             usages = load_df_from_npz(self.paths['iter_usages'] % (p['n_components'], p['iter']))
             if combined_usages is None:
                 combined_usages = np.zeros((n_iter, usages.shape[0], k))
             combined_usages[p['iter'], :, :] = usages.values
+            """
 
             for t in range(k):
                 spectra_labels.append('iter%d_topic%d'%(p['iter'], t+1))
-                usages_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                # usages_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                beta_shape_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                beta_rate_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                eta_shape_labels.append('iter%d_topic%d'%(p['iter'], t+1))
+                eta_rate_labels.append('iter%d_topic%d'%(p['iter'], t+1))
 
         combined_spectra = combined_spectra.reshape(-1, combined_spectra.shape[-1])
         combined_spectra = pd.DataFrame(combined_spectra, columns=spectra.columns, index=spectra_labels)
         save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
 
+        combined_beta_shape = combined_beta_shape.reshape(-1, combined_beta_shape.shape[-1])
+        combined_beta_shape = pd.DataFrame(combined_beta_shape, columns=beta_shape.columns, index=beta_shape_labels)
+        save_df_to_npz(combined_beta_shape, self.paths['merged_beta_shape']%k)
+
+        combined_beta_rate = combined_beta_rate.reshape(-1, combined_beta_rate.shape[-1])
+        combined_beta_rate = pd.DataFrame(combined_beta_rate, columns=beta_rate.columns, index=beta_rate_labels)
+        save_df_to_npz(combined_beta_rate, self.paths['merged_beta_rate']%k)
+
+        combined_eta_shape = combined_eta_shape.reshape(-1, combined_eta_shape.shape[-1])
+        combined_eta_shape = pd.DataFrame(combined_eta_shape, columns=eta_shape.columns, index=eta_shape_labels)
+        save_df_to_npz(combined_eta_shape, self.paths['merged_eta_shape']%k)
+
+        combined_eta_rate = combined_eta_rate.reshape(-1, combined_eta_rate.shape[-1])
+        combined_eta_rate = pd.DataFrame(combined_eta_rate, columns=eta_rate.columns, index=eta_rate_labels)
+        save_df_to_npz(combined_eta_rate, self.paths['merged_eta_rate']%k)
+
+        """
         combined_usages = combined_usages.reshape(-1, combined_usages.shape[-2]).T
         combined_usages = pd.DataFrame(combined_usages, columns=usages_labels, index=usages.index)
         save_df_to_npz(combined_usages, self.paths['merged_usages']%k)
+        """
         
-        return combined_spectra, combined_usages
+        return combined_spectra, combined_beta_shape, combined_beta_rate, combined_eta_shape, combined_eta_rate
 
 
     def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
                 train_set=False): # EDIT 10/12/23
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
-        merged_usages = load_df_from_npz(self.paths['merged_usages']%k)
+        # merged_usages = load_df_from_npz(self.paths['merged_usages']%k)
         # merged_usages = merged_usages.T
+        merged_beta_shape = load_df_from_npz(self.paths['merged_beta_shape']%k)
+        merged_beta_rate = load_df_from_npz(self.paths['merged_beta_rate']%k)
+        merged_eta_shape = load_df_from_npz(self.paths['merged_eta_shape']%k)
+        merged_eta_rate = load_df_from_npz(self.paths['merged_eta_rate']%k)
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
 
         def median_index(lst):
@@ -535,12 +621,12 @@ class cNMF():
 
         # Determine the mode factor replicate for each KMeans cluster 
         mode_spectra = pd.DataFrame()
-        mode_usages = pd.DataFrame()
+        # mode_usages = pd.DataFrame()
         
         for i in range(0,k):
             mode_replicate = median_replicates_df.iloc[i,:].mode()
             mode_spectra['Cluster %d'%(i+1)] = l2_spectra.T[mode_replicate].values[:,0].tolist()
-            mode_usages['Cluster %d'%(i+1)] = merged_usages[mode_replicate].values[:,0].tolist()
+            # mode_usages['Cluster %d'%(i+1)] = merged_usages[mode_replicate].values[:,0].tolist()
 
         # Normalize mode spectra to probability distributions.
         mode_spectra = mode_spectra.T
@@ -563,9 +649,6 @@ class cNMF():
             regularization=None,
         )
 
-        # Rather than taking the median spectra for each gene across cluster as the final spectra matrix, find mode replicate by 
-        # finding the index of each median spectra in each gene across cluster. Use the mode replicate in each cluster to output 
-        # the mode spectra matrix AND usage matrix.
         if train_set:
             train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
         else:
@@ -578,7 +661,7 @@ class cNMF():
         #                           train_X=train_norm_counts
         #                          )
 
-        rf_usages = mode_usages
+        # rf_usages = mode_usages
 
         nmf_kwargs=refit_nmf_kwargs
         topic_labels=np.arange(1,k+1)
