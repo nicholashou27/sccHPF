@@ -237,11 +237,13 @@ class cNMF():
             high_variance_genes_filter = gene_counts_stats.high_var
         high_var_counts = counts_df.loc[:, high_variance_genes_filter]
         # norm_counts = high_var_counts/high_var_counts.std()
+        norm_counts = high_var_counts
         norm_counts = norm_counts.fillna(0.0)
 
         if train_set: 
             train_high_var_counts = train_counts_df.loc[:, high_variance_genes_filter]
             # train_norm_counts = train_high_var_counts/train_high_var_counts.std()
+            train_norm_counts = train_high_var_counts
             train_norm_counts = train_norm_counts.fillna(0.0)
             
             return norm_counts, train_norm_counts 
