@@ -460,7 +460,7 @@ class cNMF():
         self._initialize_dirs()
 
         combined_spectra = None
-        combined_usages = None
+        # combined_usages = None
         combined_beta_shape = None
         combined_beta_rate = None
         combined_eta_shape = None
@@ -469,7 +469,11 @@ class cNMF():
 
         run_params_subset = run_params[run_params.n_components==k].sort_values('iter')
         spectra_labels = []
-        usages_labels = []
+        # usages_labels = []
+        beta_shape_labels = []
+        beta_rate_labels = []
+        eta_shape_labels = []
+        eta_rate_labels = []
 
         for i,p in run_params_subset.iterrows():
 
@@ -490,8 +494,8 @@ class cNMF():
 
             eta_shape = load_df_from_npz(self.paths['iter_eta_shape'] % (p['n_components'], p['iter']))
             if combined_eta_shape is None:
-                combined_beta_shape = np.zeros((n_iter, k, eta_shape.shape[1]))
-            combined_beta_shape[p['iter'], :, :] = eta_shape.values
+                combined_eta_shape = np.zeros((n_iter, k, eta_shape.shape[1]))
+            combined_eta_shape[p['iter'], :, :] = eta_shape.values
 
             eta_rate = load_df_from_npz(self.paths['iter_eta_rate'] % (p['n_components'], p['iter']))
             if combined_eta_rate is None:
@@ -601,46 +605,86 @@ class cNMF():
         kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
 
         # Find median usage for each gene across cluster
-        median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
+        # median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
 
         # Normalize median spectra to probability distributions.
-        median_spectra = (median_spectra.T/median_spectra.sum(1)).T
+        # median_spectra = (median_spectra.T/median_spectra.sum(1)).T
 
         # Compute the silhouette score
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Determine the factor replicates that produce the median L2_spectra scores in each gene across KMeans clusters 
-        median_replicates_df = pd.DataFrame(0,
-                                    columns=l2_spectra.columns,
-                                    index=[i for i in range(1,k+1)]
-                                    )
-
-        for i in range(l2_spectra.shape[1]):
+        median_replicates_df = pd.DataFrame(0,columns=l2_spectra.columns,index=[i for i in range(1,k+1)])
+        median_spectra = pd.DataFrame(0,columns=l2_spectra.columns,index=[i for i in range(1,k+1)])
+        median_beta_shape = pd.DataFrame(0,columns=l2_spectra.columns,index=[i for i in range(1,k+1)])
+        median_beta_rate = pd.DataFrame(0,columns=l2_spectra.columns,index=[i for i in range(1,k+1)])
+        median_eta_shape = pd.DataFrame(0,columns=l2_spectra.columns,index=[i for i in range(1,k+1)])
+        median_eta_rate = pd.DataFrame(0,columns=l2_spectra.columns,index=[i for i in range(1,k+1)])
+        
+        for i in range(l2_spectra.shape[1]): # for every gene 
             df = pd.DataFrame()
             df['replicate'] = l2_spectra.index.tolist()
             df['kmeans_cluster_labels'] = kmeans_cluster_labels.tolist()
             df['spectra_score'] = l2_spectra.iloc[:,i].tolist()
+            df['beta_shape_score'] = merged_beta_shape.iloc[:,i].tolist()
+            df['beta_rate_score'] = merged_beta_rate.iloc[:,i].tolist()
+            df['eta_shape_score'] = merged_eta_shape.iloc[:,i].tolist()
+            df['eta_rate_score'] = merged_eta_rate.iloc[:,i].tolist()
         
             median_replicates = []
+            median_spectra_col = []
+            median_beta_shape_col = []
+            median_beta_rate_col = []
+            median_eta_shape_col = []
+            median_eta_rate_col = []
+        
             for c in range(1,k+1):
                 idx = median_index(df[df['kmeans_cluster_labels']==c]['spectra_score'].tolist())
                 median_replicates.append(df[df['kmeans_cluster_labels']==c]['replicate'].tolist()[idx])
-                
+                median_spectra_col.append(df[df['kmeans_cluster_labels']==c]['spectra_score'].tolist()[idx])
+                median_beta_shape_col.append(df[df['kmeans_cluster_labels']==c]['beta_shape_score'].tolist()[idx])
+                median_beta_rate_col.append(df[df['kmeans_cluster_labels']==c]['beta_rate_score'].tolist()[idx])
+                median_eta_shape_col.append(df[df['kmeans_cluster_labels']==c]['eta_shape_score'].tolist()[idx])
+                median_eta_rate_col.append(df[df['kmeans_cluster_labels']==c]['eta_rate_score'].tolist()[idx])
+            
             median_replicates_df.iloc[:,i] = median_replicates
-
-        # Determine the mode factor replicate for each KMeans cluster 
-        mode_spectra = pd.DataFrame()
-        # mode_usages = pd.DataFrame()
+            median_spectra.iloc[:,i] = median_spectra_col
+            median_beta_shape.iloc[:,i] = median_beta_shape_col
+            median_beta_rate.iloc[:,i] = median_beta_rate_col
+            median_eta_shape.iloc[:,i] = median_eta_shape_col
+            median_eta_rate.iloc[:,i] = median_eta_rate_col
         
-        for i in range(0,k):
-            mode_replicate = median_replicates_df.iloc[i,:].mode()
-            mode_spectra['Cluster %d'%(i+1)] = l2_spectra.T[mode_replicate].values[:,0].tolist()
-            # mode_usages['Cluster %d'%(i+1)] = merged_usages[mode_replicate].values[:,0].tolist()
+        median_eta_shape = median_eta_shape.mean(axis=0)
+        median_eta_rate = median_eta_rate.mean(axis=0)
 
-        # Normalize mode spectra to probability distributions.
-        mode_spectra = mode_spectra.T
-        mode_spectra = (mode_spectra.T/mode_spectra.sum(axis=1)).T
-        mode_spectra.columns, mode_spectra.index = median_spectra.columns, median_spectra.index
+        # Create scHPF model with the median beta and eta 
+        consensus_beta = schpf.HPF_Gamma(np.transpose(median_beta_shape.to_numpy()),
+                                         np.transpose(median_beta_rate.to_numpy()))
+        consensus_eta = schpf.HPF_Gamma(np.transpose(median_eta_shape.to_numpy()),
+                                        np.transpose(median_eta_rate.to_numpy()))
+        
+        consensus_HPF = schpf.scHPF(nfactors=k,
+                                    beta=consensus_beta,
+                                    eta=consensus_eta)
+        
+        # consensus_HPF._setup(norm_counts, freeze_genes=True)
+        X = sp.coo_matrix(sc.AnnData(norm_counts).X)
+        
+        if train_set: 
+          train_norm_counts = load_df_from_npz(cnmf_obj.paths['train_normalized_counts'])
+          train_X = sp.coo_matrix(sc.AnnData(train_norm_counts).X)
+          consensus_HPF.bp, consensus_HPF.dp = consensus_HPF._get_empirical_hypers(train_X)
+        else:
+          train_norm_counts = None
+          consensus_HPF.bp, consensus_HPF.dp = consensus_HPF._get_empirical_hypers(X) # assign empirical hyperparameters
+        
+        (bp, _, xi, _, theta, _, loss) = consensus_HPF._fit(X, freeze_genes=True)
+        consensus_HPF.xi = xi
+        consensus_HPF.theta = theta
+        
+        (W, H) = consensus_HPF.cell_score(), consensus_HPF.gene_score()
+        consensus_usages = pd.DataFrame(W, index=norm_counts.index, columns=topic_labels)
+        consensus_spectra = pd.DataFrame(np.transpose(H), columns=norm_counts.columns, index=topic_labels)
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
@@ -657,11 +701,6 @@ class cNMF():
             max_iter=1000,
             regularization=None,
         )
-
-        if train_set:
-            train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
-        else:
-            train_norm_counts = None 
             
         #  _, rf_usages = self._nmf(norm_counts,
         #                           nmf_kwargs=refit_nmf_kwargs,
@@ -676,13 +715,11 @@ class cNMF():
         topic_labels=np.arange(1,k+1)
 
         if topic_labels is None:
-            spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
-            usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
+            consensus_spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
+            consensus_usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
         
         # rf_usages = pd.DataFrame(rf_usages, index=norm_counts.index, columns=median_spectra.index)
-        rf_usages = pd.DataFrame(mode_usages.values, index=norm_counts.index, columns=median_spectra.index)
-        # rf_pred_norm_counts = rf_usages.dot(median_spectra)
-        rf_pred_norm_counts = rf_usages.dot(mode_spectra)
+        rf_pred_norm_counts = consensus_usages.dot(consensus_spectra)
 
         # Compute prediction error as a frobenius norm
         frobenius_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
@@ -695,12 +732,12 @@ class cNMF():
             return consensus_stats
         
         # save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
-        save_df_to_npz(mode_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
-        save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
+        save_df_to_npz(consensus_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
+        save_df_to_npz(consensus_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
         save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
         # save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
-        save_df_to_text(mode_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
-        save_df_to_text(rf_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
+        save_df_to_text(conensus_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
+        save_df_to_text(consensus_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
 
         # Compute gene-scores for each GEP by regressing usage on Z-scores of TPM
         tpm = load_df_from_npz(self.paths['tpm'])
