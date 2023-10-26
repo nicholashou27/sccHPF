@@ -325,10 +325,10 @@ class cNMF():
         # EDIT 10/12/23
         if train_set:
             train_adata = sc.AnnData(train_X)
-            hpf_model = schpf.run_trials(sp.coo_matrix(train_adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
+            hpf_model = schpf.run_trials(sp.coo_matrix(train_adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
             hpf_model.project(sp.coo_matrix(adata.X), replace=True)
         else:
-            hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.1)
+            hpf_model = schpf.run_trials(sp.coo_matrix(adata.X),nmf_kwargs['n_components'],ntrials=1,epsilon=0.001)
         
         # (W, H) = hpf_model.cell_score(), hpf_model.gene_score()
         H = hpf_model.gene_score()
@@ -343,13 +343,11 @@ class cNMF():
         eta_shape = pd.concat([eta_shape] * spectra.shape[0], axis=1, ignore_index=True)
         eta_shape = eta_shape.T
         eta_shape.columns = X.columns 
-        # eta_shape.index = topic_labels
         
         eta_rate = pd.DataFrame(hpf_model.eta.vi_rate) 
         eta_rate = pd.concat([eta_rate] * spectra.shape[0], axis=1, ignore_index=True)
         eta_rate = eta_rate.T
         eta_rate.columns = X.columns 
-        # eta_rate.index = topic_labels
 
         #Sort by overall usage, and rename topics with 1-indexing.
         topic_order = spectra.sum(axis=1).sort_values(ascending=False).index
