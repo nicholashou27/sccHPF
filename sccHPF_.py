@@ -695,11 +695,30 @@ class cNMF():
         )
             
         nmf_kwargs=refit_nmf_kwargs
-        
-        rf_pred_norm_counts = consensus_usages.dot(consensus_spectra)
 
-        # Compute prediction error as a frobenius norm
-        frobenius_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
+        # Posterior predictive check should be ran according to the appropriate training data
+        if not train_set: 
+            rf_pred_norm_counts = consensus_usages.dot(consensus_spectra)
+            # Compute prediction error as a frobenius norm
+            frobenius_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
+        else: 
+            train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
+            train_X = sp.coo_matrix(sc.AnnData(train_norm_counts).X)
+            train_consensus_HPF.bp, train_consensus_HPF.dp = train_consensus_HPF._get_empirical_hypers(train_X) # assign empirical hyperparameters for the training dataset
+            
+            (bp, _, xi, _, theta, _, loss) = train_consensus_HPF._fit(train_X, freeze_genes=True)
+            train_consensus_HPF.xi = xi
+            train_consensus_HPF.theta = theta
+    
+            topic_labels=np.arange(1,k+1)
+    
+            # Obtain the consensus GEP and cell usage matrices from the model 
+            (W, H) = train_consensus_HPF.cell_score(), train_consensus_HPF.gene_score()
+            train_consensus_usages = pd.DataFrame(W, index=train_norm_counts.index, columns=topic_labels)
+            train_consensus_spectra = pd.DataFrame(np.transpose(H), columns=train_norm_counts.columns, index=topic_labels)
+
+            rf_pred_norm_counts = train_consensus_usages.dot(train_consensus_spectra)
+            frobenius_error = ((train_norm_counts - rf_pred_norm_counts)**2).sum().sum()
 
         consensus_stats = pd.DataFrame([k, density_threshold, stability, frobenius_error],
                     index = ['k', 'local_density_threshold', 'stability', 'prediction_error'],
