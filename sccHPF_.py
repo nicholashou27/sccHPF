@@ -702,6 +702,10 @@ class cNMF():
             # Compute prediction error as a frobenius norm
             frobenius_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
         else: 
+            train_consensus_HPF = schpf.scHPF(nfactors=k,
+                                            beta=consensus_beta,
+                                            eta=consensus_eta)
+            
             train_norm_counts = load_df_from_npz(self.paths['train_normalized_counts'])
             train_X = sp.coo_matrix(sc.AnnData(train_norm_counts).X)
             train_consensus_HPF.bp, train_consensus_HPF.dp = train_consensus_HPF._get_empirical_hypers(train_X) # assign empirical hyperparameters for the training dataset
