@@ -664,10 +664,16 @@ class cNMF():
         consensus_HPF.xi = xi
         consensus_HPF.theta = theta
 
+        topic_labels=np.arange(1,k+1)
+
         # Obtain the consensus GEP and cell usage matrices from the model 
         (W, H) = consensus_HPF.cell_score(), consensus_HPF.gene_score()
         consensus_usages = pd.DataFrame(W, index=norm_counts.index, columns=topic_labels)
         consensus_spectra = pd.DataFrame(np.transpose(H), columns=norm_counts.columns, index=topic_labels)
+
+        if topic_labels is None:
+            consensus_spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
+            consensus_usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
 
         # Normalize consensus spectra to probability distributions.
         # consensus_spectra = (consensus_spectra.T/consensus_spectra.sum(1)).T
@@ -689,11 +695,6 @@ class cNMF():
         )
             
         nmf_kwargs=refit_nmf_kwargs
-        topic_labels=np.arange(1,k+1)
-
-        if topic_labels is None:
-            consensus_spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
-            consensus_usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
         
         rf_pred_norm_counts = consensus_usages.dot(consensus_spectra)
 
