@@ -879,7 +879,7 @@ class cNMF():
             if close_clustergram_fig:
                 plt.close(fig)
 
-    def k_selection_plot(self, close_fig=True):
+    def k_selection_plot(self, close_fig=True, train_set=False):
         '''
         Borrowed from Alexandrov Et Al. 2013 Deciphering Mutational Signatures
         publication in Cell Reports
@@ -888,7 +888,7 @@ class cNMF():
         stats = []
         for k in sorted(set(run_params.n_components)):
 
-            stats.append(self.consensus(k, skip_density_and_return_after_stats=True).stats)
+            stats.append(self.consensus(k, skip_density_and_return_after_stats=True,train_set=train_set).stats)
 
         stats = pd.DataFrame(stats)
         stats.reset_index(drop = True, inplace = True)
