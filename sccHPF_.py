@@ -658,14 +658,7 @@ class cNMF():
 
         # Fit theta and xi to the consensus beta and eta
         X = sp.coo_matrix(sc.AnnData(norm_counts).X)
-        
-        if train_set: 
-          train_norm_counts = load_df_from_npz(cnmf_obj.paths['train_normalized_counts'])
-          train_X = sp.coo_matrix(sc.AnnData(train_norm_counts).X)
-          consensus_HPF.bp, consensus_HPF.dp = consensus_HPF._get_empirical_hypers(train_X)
-        else:
-          train_norm_counts = None
-          consensus_HPF.bp, consensus_HPF.dp = consensus_HPF._get_empirical_hypers(X) # assign empirical hyperparameters
+        consensus_HPF.bp, consensus_HPF.dp = consensus_HPF._get_empirical_hypers(X) # assign empirical hyperparameters for the projected dataset
         
         (bp, _, xi, _, theta, _, loss) = consensus_HPF._fit(X, freeze_genes=True)
         consensus_HPF.xi = xi
