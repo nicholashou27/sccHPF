@@ -549,8 +549,6 @@ class cNMF():
     def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True,
                 train_set=False): # EDIT 10/12/23
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
-        # merged_usages = load_df_from_npz(self.paths['merged_usages']%k)
-        # merged_usages = merged_usages.T
         merged_beta_shape = load_df_from_npz(self.paths['merged_beta_shape']%k)
         merged_beta_rate = load_df_from_npz(self.paths['merged_beta_rate']%k)
         merged_eta_shape = load_df_from_npz(self.paths['merged_eta_shape']%k)
@@ -571,7 +569,6 @@ class cNMF():
 
         # Rescale topics such to length of 1.
         l2_spectra = (merged_spectra.T/np.sqrt((merged_spectra**2).sum(axis=1))).T
-        # l2_usages = merged_usages.T/np.sqrt((merged_usages**2).sum(axis=1))
 
         if not skip_density_and_return_after_stats:
             # Compute the local density matrix (if not previously cached)
@@ -603,12 +600,6 @@ class cNMF():
         kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
         kmeans_model.fit(l2_spectra)
         kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
-
-        # Find median usage for each gene across cluster
-        # median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
-
-        # Normalize median spectra to probability distributions.
-        # median_spectra = (median_spectra.T/median_spectra.sum(1)).T
 
         # Compute the silhouette score
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
@@ -666,8 +657,8 @@ class cNMF():
         consensus_HPF = schpf.scHPF(nfactors=k,
                                     beta=consensus_beta,
                                     eta=consensus_eta)
-        
-        # consensus_HPF._setup(norm_counts, freeze_genes=True)
+
+        # Fit theta and xi to the consensus beta and eta
         X = sp.coo_matrix(sc.AnnData(norm_counts).X)
         
         if train_set: 
@@ -681,10 +672,14 @@ class cNMF():
         (bp, _, xi, _, theta, _, loss) = consensus_HPF._fit(X, freeze_genes=True)
         consensus_HPF.xi = xi
         consensus_HPF.theta = theta
-        
+
+        # Obtain the consensus GEP and cell usage matrices from the model 
         (W, H) = consensus_HPF.cell_score(), consensus_HPF.gene_score()
         consensus_usages = pd.DataFrame(W, index=norm_counts.index, columns=topic_labels)
         consensus_spectra = pd.DataFrame(np.transpose(H), columns=norm_counts.columns, index=topic_labels)
+
+        # Normalize consensus spectra to probability distributions.
+        # consensus_spectra = (consensus_spectra.T/consensus_spectra.sum(1)).T
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
         refit_nmf_kwargs = dict(
@@ -702,15 +697,6 @@ class cNMF():
             regularization=None,
         )
             
-        #  _, rf_usages = self._nmf(norm_counts,
-        #                           nmf_kwargs=refit_nmf_kwargs,
-        #                           topic_labels=np.arange(1,k+1), 
-        #                           train_set=train_set, 
-        #                           train_X=train_norm_counts
-        #                          )
-
-        # rf_usages = mode_usages
-
         nmf_kwargs=refit_nmf_kwargs
         topic_labels=np.arange(1,k+1)
 
@@ -718,7 +704,6 @@ class cNMF():
             consensus_spectra.index = np.arange(1, nmf_kwargs['n_components']+1)
             consensus_usages.columns = np.arange(1, nmf_kwargs['n_components']+1)
         
-        # rf_usages = pd.DataFrame(rf_usages, index=norm_counts.index, columns=median_spectra.index)
         rf_pred_norm_counts = consensus_usages.dot(consensus_spectra)
 
         # Compute prediction error as a frobenius norm
@@ -731,11 +716,9 @@ class cNMF():
         if skip_density_and_return_after_stats:
             return consensus_stats
         
-        # save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(consensus_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(consensus_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
         save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
-        # save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
         save_df_to_text(conensus_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
         save_df_to_text(consensus_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
 
@@ -743,35 +726,11 @@ class cNMF():
         tpm = load_df_from_npz(self.paths['tpm'])
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
         norm_tpm = tpm.subtract(tpm_stats['__mean'], axis=1).div(tpm_stats['__std'], axis=1)
-        norm_tpm = norm_tpm.loc[rf_usages.index, :]
-        usage_coef = fast_ols_all_cols_df(rf_usages, norm_tpm)
+        norm_tpm = norm_tpm.loc[consensus_usages.index, :]
+        usage_coef = fast_ols_all_cols_df(consensus_usages, norm_tpm)
 
         save_df_to_npz(usage_coef, self.paths['gene_spectra_score']%(k, density_threshold_repl))
         save_df_to_text(usage_coef, self.paths['gene_spectra_score__txt']%(k, density_threshold_repl))
-
-        # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
-        # with usages fixed and TPM as the input matrix
-        # norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
-        # fit_tpm_nmf_kwargs = dict(
-        #     n_components = k,
-        #     H = norm_usages.T.values,
-        #     update_H = False,
-        #     shuffle = True,
-
-        #     alpha=0.0,
-        #     l1_ratio=0.0,
-        #     beta_loss='frobenius',
-        #     solver='cd',
-        #     tol=1e-4,
-        #     max_iter=1000,
-        #     regularization=None,
-        # )
-        # _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs, topic_labels=np.arange(1,k+1), 
-        #                            train_set=train_set, train_X=train_norm_counts)
-        # spectra_tpm = spectra_tpm.T
-        # spectra_tpm.sort_index(ascending=True, inplace=True)
-        # save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
-        # save_df_to_text(spectra_tpm, self.paths['gene_spectra_tpm__txt']%(k, density_threshold_repl))
 
         if show_clustering:
             if topics_dist is None:
@@ -797,7 +756,6 @@ class cNMF():
                     cl_leaves_order = leaves_list(cl_link)
 
                 spectra_order += list(np.where(cl_filter)[0][cl_leaves_order])
-
 
             from matplotlib import gridspec
             import matplotlib.pyplot as plt
