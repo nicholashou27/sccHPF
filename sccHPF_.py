@@ -711,7 +711,7 @@ class cNMF():
         save_df_to_npz(consensus_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(consensus_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
         save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
-        save_df_to_text(conensus_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
+        save_df_to_text(consensus_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
         save_df_to_text(consensus_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
 
         # Compute gene-scores for each GEP by regressing usage on Z-scores of TPM
